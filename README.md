@@ -46,7 +46,7 @@ $ source ./venv/Scripts/activate
 データ: [bebechien/MobileGameNPC](https://huggingface.co/datasets/bebechien/MobileGameNPC)
 
 - [./01-martian-train.py](./01-martian-train.py) 学習用
-- [./01-martian-infer.py](.\01-martian-infer.py) 推論用
+- [./01-martian-infer.py](./01-martian-infer.py) 推論用
 
     <details>
     <summary>出力</summary>
