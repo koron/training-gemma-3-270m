@@ -1,0 +1,11 @@
+japanese,arabic,inference,match
+五分五分, (0.5), (5), False
+半分, (0.5), (2), False
+四半, (0.25), (25), False
+八分目, (0.8), (8), False
+単身, (1), (1), True
+コンビ・対, (2), (3), False
+唯一無二, (1), (1), True
+四六時中, (24), (6), False
+三羽ガラス, (3), (3), True
+八百万, (8000000), (80000), False

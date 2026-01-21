@@ -95,3 +95,72 @@ $ source ./venv/Scripts/activate
 
 > The tokenizer you are loading from './checkpoints/MyGemmaNPC/checkpoint-25' with an incorrect regex pattern: https://huggingface.co/mistralai/Mistral-Small-3.1-24B-Instruct-2503/discussions/84#69121093e8b480e709447d5e. This will lead to incorrect tokenization. You should set the `fix_mistral_regex=True` flag when loading this tokenizer to fix this issue.
 
+## さまざまな数値表現のアラビア数字化
+
+-   データセット [dataset/janum.csv](./dataset/janum.csv)
+-   [./02a-janum-train.py](./02a-janum-train.py) 学習用
+-   [./02b-janum-infer.py](./02b-janum-infer.py) 推論用(テストデータセットのみ)
+-   [./02c-janum-infer-all.py](./02c-janum-infer-all.py) 推論用(全データ対象)
+
+|  japanese  |   arabic   | inference | match  |
+|------------|------------|-----------|--------|
+| 五分五分   |  (0.5)     |  (5)      |  False |
+| 半分       |  (0.5)     |  (2)      |  False |
+| 四半       |  (0.25)    |  (25)     |  False |
+| 八分目     |  (0.8)     |  (8)      |  False |
+| 単身       |  (1)       |  (1)      |  True  |
+| コンビ・対 |  (2)       |  (3)      |  False |
+| 唯一無二   |  (1)       |  (1)      |  True  |
+| 四六時中   |  (24)      |  (6)      |  False |
+| 三羽ガラス |  (3)       |  (3)      |  True  |
+| 八百万     |  (8000000) |  (80000)  |  False |
+
+-   結果 (accuracy = 3/10 = 0.3) は良いとは言えない
+    -   そもそも学習データの内容が良くない
+        - 並びのせいでtrainとtestの組み分けが恣意的
+        - 件数が少ない
+        - 組み合わせが少ない
+    -   浮動小数点に弱い
+    -   言葉の一部や成句に引き摺られていそう
+        -   半分 → 1/2 の `2`
+        -   四半 → 四半世紀 → `25`
+        -   四六時中 → 最初の `4`
+-   カッコで囲ったのは複数の都合による
+    -   カッコ無しだと列が数値(float)として扱われ、文字列表現に癖が出て (`1 → 1.0`, `10 → 10.0`) その表現が学習に対するノイズになる
+    -   開始と終了を個別にマークしたほうが結果が良かった
+    -   このルールは完璧に学習したようだ
+
+参考: [全データに対する推論](results/02c-janum-all.csv)
+
+## 数値表現のアラビア数字可 + データシャッフル
+
+データセットの並びとtrainとtesutの組み分けが恣意的で、学習結果に悪い影響がでていないかを検証する。
+そのためにデータセットをランダムに入れ替えたのちに、同じように学習推論をしてみる。
+
+結果: accuracy = 7/10 = 0.7
+
+-   データセット [dataset/janum+shuf.csv](./dataset/janum+shuf.csv)
+-   [./03a-janum+shuf-train.py](./03a-janum+shuf-train.py) 学習用
+-   [./03b-janum+shuf-infer-all.py](./03b-janum+shuf-infer-all.py) 推論用(全データ対象)
+
+|  japanese  | arabic | inference | match  |
+|------------|--------|-----------|--------|
+| 廿         |  (20)  |  (20)     |  True  |
+| コンビ・対 |  (2)   |  (2)      |  True  |
+| 十         |  (10)  |  (10)     |  True  |
+| 十四日     |  (14)  |  (14)     |  True  |
+| 参         |  (3)   |  (100000) |  False |
+| 単身       |  (1)   |  (1)      |  True  |
+| 二十日     |  (20)  |  (2)      |  False |
+| 三日       |  (3)   |  (3)      |  True  |
+| 一割       |  (0.1) |  (0.25)   |  False |
+| 七つ       |  (7)   |  (7)      |  True  |
+
+-   結果 accuracy = 0.7 は良くなった
+    -   経験的に納得のいく割合
+-   得手・不得手はありそう
+    -   1文字目の数字は読みやすい
+    -   2文字目以降が重要だと間違えやすい: 例: `二十日`
+    -   少数の扱いは苦手そう
+
+参考: [全データに対する推論](results/03b-janum+shuf.csv)
