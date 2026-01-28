@@ -132,7 +132,7 @@ $ source ./venv/Scripts/activate
 
 参考: [全データに対する推論](results/02c-janum-all.csv)
 
-## 数値表現のアラビア数字可 + データシャッフル
+## 数値表現のアラビア数字化 + データシャッフル
 
 データセットの並びとtrainとtesutの組み分けが恣意的で、学習結果に悪い影響がでていないかを検証する。
 そのためにデータセットをランダムに入れ替えたのちに、同じように学習推論をしてみる。
@@ -164,3 +164,41 @@ $ source ./venv/Scripts/activate
     -   少数の扱いは苦手そう
 
 参考: [全データに対する推論](results/03b-janum+shuf.csv)
+
+## 漢字による数値表現のアラビア数字化
+
+漢数字だけに絞りバリエーション(データ数)を増やして学習。
+
+-   データセット [dataset/kannume](./dataset/kannume.csv)
+-   [./04a-kannume-train.py](./04a-kannume-train.py) - 学習
+-   [./04b-kannume-infer-all.py](./04b-kannume-infer-all.py) - 推論・評価
+
+今回から、推論もバッチ=16個で行っている。
+推論のたびに微妙に結果が変わるが、temperatureだと思われる。
+
+結果:
+
+```
+train: accuracy=0.8125 (130/160)
+test: accuracy=0.575 (23/40)
+```
+
+具体的な結果:
+
+-   [学習用データ(160件)](./results/04b-kannume-train.csv)
+-   [検証用データ(40件)](./results/04b-kannume-test.csv)
+
+所感:
+
+-   学習用データへのフィッティング (accuracy) は約 70～80%
+-   検証用データでの正答率 (accuracy) は約 60%
+    -   学習のエポック数やバッチ数を変えてみたがこの辺りが限界
+-   明確な弱点が存在する
+    -   同じ数字が連続するケース。特に0が連続する大きな数は苦手
+    -   桁が飛ぶケース (七千二十=7020, 誤答例: 720 700020)
+    -   位≒桁数の認識ができていない
+-   解決策になるかも?
+    -   [Positional Description for Numerical Normalization](https://arxiv.org/abs/2408.12430)  
+        日本語による解説記事: [数値正規化のための位置記述スキーム](https://aibr.jp/archives/141660)
+
+> 例えば”123″を”1 03 2 02 3 01″のように変換することで、最下位桁からの相対的な位置情報を明示する
