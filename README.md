@@ -300,8 +300,54 @@ test: accuracy=0.5 (20/40)
 
 -   元のPDSは現実世界に似たものが無さ過ぎて、モデル内の事前学習が機能していないのでは、という仮説への反証が本方式。指数表現はプログラムの中に頻繁に存在するのでそこからの流用を狙った
 -   元のPDSよりは明らかに精度が良くなった。しかしオリジナルアラビア数字による表現と比べれば、同等になった程度で改善には至ってない
--   他のモデルだとどうなんだ?
-    -   [Liquid LFM2-350M](https://huggingface.co/LiquidAI/LFM2-350M)
-    -   [SmolLM2-360M-Instruct](https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct)
-    -   [Qwen2.5-0.5B-Instruct](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct)
-    -	[Gemma 3 1B](https://huggingface.co/google/gemma-3-1b-it)
+-   他のモデルだとどうなんだ? → 次の節で
+
+### 他モデルでの学習実験
+
+ちょっと PDS2 でやってみた。
+
+-   [Liquid LFM2-350M](https://huggingface.co/LiquidAI/LFM2-350M)
+
+    test データセットでの点数は良いかも?
+
+    ```
+    train: accuracy=0.78125 (125/160)
+    test: accuracy=0.6 (24/40)
+    ```
+
+-   [SmolLM2-360M-Instruct](https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct)
+
+    ダメそう
+
+    ```
+    train: accuracy=0.20625 (33/160)
+    test: accuracy=0.15 (6/40)
+    ```
+
+-   [Qwen2.5-0.5B-Instruct](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct)
+
+    かなり良い、がオリジナルのアラビア数字版と同等
+
+    ```
+    train: accuracy=0.8875 (142/160)
+    test: accuracy=0.525 (21/40)
+    ```
+
+-	[Gemma 3 1B](https://huggingface.co/google/gemma-3-1b-it)
+
+    良い、がオリジナルのアラビア数字版と同等。大きくする意味があるか?
+    またLoRAにすべきでは?
+
+    ```
+    train: accuracy=0.81875 (131/160)
+    test: accuracy=0.525 (21/40)
+    ```
+
+少し実験してみたけど、あまり劇的な変化ではないなぁ…
+
+スクリプト:
+
+-   [./06a-another\_model-pds2-train.py](./06a-another_model-pds2-train.py) - 学習
+-   [./06b-another\_model-pds2-infer.py](./06b-another_model-pds2-infer.py) - 推論・評価
+
+データセットをオリジナルのアラビア数字版に変えて、同等の実験をしたほうが良い?
