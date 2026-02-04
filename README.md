@@ -202,3 +202,106 @@ test: accuracy=0.575 (23/40)
         日本語による解説記事: [数値正規化のための位置記述スキーム](https://aibr.jp/archives/141660)
 
 > 例えば”123″を”1 03 2 02 3 01″のように変換することで、最下位桁からの相対的な位置情報を明示する
+
+## Positional Description 表現の採用
+
+仮説: PDSへの変換ならば精度が上がるのでは?  
+→ 実際にやってみたらむしろ悪くなった。
+
+-   データセット [dataset/pds.csv](./dataset/pds.csv)
+-   [./05a-pds-train.py](./05a-pds-train.py) - 学習
+-   [./05b-pds-infer.py](./05b-pds-infer.py) - 推論・評価
+
+結果(統計情報):
+
+```
+train: accuracy=0.4375 (70/160)
+test: accuracy=0.4 (16/40)
+```
+
+結果(全体のCSV): [./results/05b-pds-infer.csv](./results/05b-pds-infer.csv)
+
+結果(train抜粋)
+
+|   japanese   |         pds         |      inference      | match  |
+|--------------|---------------------|---------------------|--------|
+| 一万五千     |  _ 1 05 5 04 _      |  _ 1 08 5 06 _      |  False |
+| 弐拾弐       |  _ 2 02 2 01 _      |  _ 2 02 2 01 _      |  True  |
+| 伍千億       |  _ 5 012 _          |  _ 5 010 _          |  False |
+| 七千三百四十 |  _ 7 04 3 03 4 02 _ |  _ 7 03 3 02 4 01 _ |  False |
+| 漆百捌拾玖   |  _ 7 03 8 02 9 01 _ |  _ 7 02 8 01 _      |  False |
+| 百一         |  _ 1 03 1 01 _      |  _ 1 04 1 03 _      |  False |
+| 四十八       |  _ 4 02 8 01 _      |  _ 4 02 8 01 _      |  True  |
+| 三万八千     |  _ 3 05 8 04 _      |  _ 3 05 8 03 _      |  False |
+| 肆百億       |  _ 4 011 _          |  _ 4 012 _          |  False |
+| 弐仟弐百     |  _ 2 04 2 03 _      |  _ 2 03 2 02 _      |  False |
+
+試行錯誤:
+
+-   学習率が悪いのでは? → 7.0e-5 ~ 8.0e-5 で少し改善するが accuracy が0.5になるくらい
+-   `_` ではなく `()` で囲ったら良いのでは? → ほぼ変わらないか悪化
+-   `1e4` (10000) のような指数表現のほうが馴染むのでは? → 次の節
+-   より高性能なモデルならば話は違うのだろうか?
+
+### PDSの応用: 指数表現
+
+-   変更点
+    -   `1e4 2e3` のような指数表現で桁を表現
+    -   `()` で囲む
+-   結果
+    -   元のPDS(`1 05 2 04`)よりはaccuracyが改善
+    -   アラビア数字に迫るか若干悪いくらい
+
+結果(統計情報):
+
+-   データセット [dataset/pds2.csv](./dataset/pds2.csv)
+-   [./05c-pds2-train.py](./05c-pds2-train.py) - 学習
+-   [./05d-pds2-infer.py](./05d-pds2-infer.py) - 推論・評価
+
+```
+train: accuracy=0.75 (120/160)
+test: accuracy=0.5 (20/40)
+```
+
+結果(全体のCSV): [./results/05d-pds2-infer.csv](./results/05d-pds2-infer.csv)
+
+結果(train抜粋)
+
+|   japanese   |       pds        |      inference       | match  |
+|--------------|------------------|----------------------|--------|
+| 一万五千     |  ( 1e4 5e3 )     |  ( 1e4 5e3 )         |  True  |
+| 弐拾弐       |  ( 2e1 2e0 )     |  ( 2e1 2e0 )         |  True  |
+| 伍千億       |  ( 5e11 )        |  ( 5e11 )            |  True  |
+| 七千三百四十 |  ( 7e3 3e2 4e1 ) |  ( 7e3 3e2 4e1 4e0 ) |  False |
+| 漆百捌拾玖   |  ( 7e2 8e1 9e0 ) |  ( 7e2 8e1 9e0 )     |  True  |
+| 百一         |  ( 1e2 1e0 )     |  ( 1e2 1e0 )         |  True  |
+| 四十八       |  ( 4e1 8e0 )     |  ( 4e1 8e0 )         |  True  |
+| 三万八千     |  ( 3e4 8e3 )     |  ( 3e4 8e3 )         |  True  |
+| 肆百億       |  ( 4e10 )        |  ( 4e12 )            |  False |
+| 弐仟弐百     |  ( 2e3 2e2 )     |  ( 2e3 2e2 )         |  True  |
+
+結果(test抜粋)
+
+|   japanese   |       pds        |    inference     | match  |
+|--------------|------------------|------------------|--------|
+| 玖百         |  ( 9e2 )         |  ( 9e2 )         |  True  |
+| 萬           |  ( 1e4 )         |  ( 1e3 )         |  False |
+| 五千五百     |  ( 5e3 5e2 )     |  ( 5e3 5e2 )     |  True  |
+| 四十八万     |  ( 4e5 8e4 )     |  ( 4e8 4e7 )     |  False |
+| 陸千四百万   |  ( 6e7 4e6 )     |  ( 6e7 4e6 )     |  True  |
+| 弐           |  ( 2e0 )         |  ( 2e0 )         |  True  |
+| 仟           |  ( 1e3 )         |  ( 1e3 )         |  True  |
+| 七万八千九百 |  ( 7e4 8e3 9e2 ) |  ( 7e4 8e3 9e2 ) |  True  |
+| 三百五十七   |  ( 3e2 5e1 7e0 ) |  ( 3e2 5e1 7e0 ) |  True  |
+| 七拾二万参千 |  ( 7e5 2e4 3e3 ) |  ( 7e5 2e3 7e2 ) |  False |
+| 壱万参仟     |  ( 1e4 3e3 )     |  ( 1e3 7e2 )     |  False |
+
+検討:
+
+-   元のPDSは現実世界に似たものが無さ過ぎて、モデル内の事前学習が機能していないのでは、という仮説への反証が本方式。指数表現はプログラムの中に頻繁に存在するのでそこからの流用を狙った
+-   元のPDSよりは明らかに精度が良くなった。しかしオリジナルアラビア数字による表現と比べれば、同等になった程度で改善には至ってない
+-   他のモデルだとどうなんだ?
+    -   [Liquid LFM2-350M](https://huggingface.co/LiquidAI/LFM2-350M)
+    -   [SmolLM2-360M-Instruct](https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct)
+    -   [Qwen2.5-0.5B-Instruct](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct)
+    -	[Gemma 3 1B](https://huggingface.co/google/gemma-3-1b-it)
