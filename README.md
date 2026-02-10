@@ -351,3 +351,57 @@ test: accuracy=0.5 (20/40)
 -   [./06b-another\_model-pds2-infer.py](./06b-another_model-pds2-infer.py) - 推論・評価
 
 データセットをオリジナルのアラビア数字版に変えて、同等の実験をしたほうが良い?
+
+## 他モデルでアラビア数字ベースでの学習
+
+前節で特に成績の良かった Qwen2.5-0.5B-Instruct を使用
+
+-   [学習: 07a-another_model-janum-train.py](./07a-another_model-janum-train.py)
+-   [推論: 07b-another_model-janum-infer.py](./07b-another_model-janum-infer.py)
+-   データセット
+    -   予備調査用: [janum+shuf.csv](dataset/janum+shuf.csv)
+    -   本調査用: [kannume.csv](dataset/kannume.csv)
+
+janum+shuf.csv の結果: ちょっと良すぎる
+
+```
+train: accuracy=0.85 (34/40)
+test: accuracy=0.8 (8/10)
+```
+
+kannume.csv の結果: [Gemma 3 300Mの結果](#漢字による数値表現のアラビア数字化) とほぼ同じ
+
+```
+train: accuracy=0.7 (112/160)
+test: accuracy=0.575 (23/40)
+```
+
+結果抜粋 ([全体](results/07-qwen2.5-kannume.csv)):
+
+|   japanese   |     arabic      |   inference   | match  |
+|--------------|-----------------|---------------|--------|
+| 一万五千     |  (15000)        |  (15000)      |  True  |
+| 弐拾弐       |  (22)           |  (22)         |  True  |
+| 伍千億       |  (500000000000) |  (5000000000) |  False |
+| 七千三百四十 |  (7340)         |  (7340)       |  True  |
+| 漆百捌拾玖   |  (789)          |  (789)        |  True  |
+| 百一         |  (101)          |  (101)        |  True  |
+| 四十八       |  (48)           |  (48)         |  True  |
+| 三万八千     |  (38000)        |  (384000)     |  False |
+| 肆百億       |  (40000000000)  |  (400000000)  |  False |
+| 弐仟弐百     |  (2200)         |  (2200)       |  True  |
+
+考察:
+
+-   連続する0に弱い
+    -   正しく解釈できているケースも少なくはない
+
+## まとめ
+
+-   数値を扱うタスクは LLM にはあまり向いてない
+    -   同じ数字、特に0が連続することがあり、そこで桁を見失う
+    -   LLMは概念としての数ではなく、字面を扱うから
+    -   PDSもあまり有効ではなかった
+-   その割には学習はそれなりに機能している
+    -   学習した範囲に対しては accuracy 0.8 前後
+    -   未知のデータに対しては accuracy 0.6 前後
